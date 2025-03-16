@@ -7,7 +7,7 @@ import SimpleITK as sitk
 import random
 
 
-data_dir = "/home/hpc/iwai/iwai119h/UGTST/repo-UGTST/data/NCI-ISBI-2013"  # Only search for files in this directory
+data_dir = "/home/hpc/iwai/iwai119h/UGTST/repo-UGTST/data/NCI-ISBI-2013"  # Manually modify the input path and output path to ensure that each preprocessed data is placed in the correct directory
 out_dir = "/home/hpc/iwai/iwai119h/UGTST/repo-UGTST/data_preprocessed/NCI-ISBI-2013"
 num_folds = 4
 
