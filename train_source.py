@@ -31,7 +31,6 @@ parser.add_argument('--seed', type=int, default=1337)
 args = parser.parse_args()
 
 
-# --------------------- 设置随机种子 ---------------------
 def set_seed(seed):
     random.seed(seed)
     np.random.seed(seed)
@@ -40,7 +39,6 @@ def set_seed(seed):
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
 
-# --------------------- 生成结构化 folds.txt ---------------------
 def generate_folds_txt(data_root, fold_file_path, num_folds=4, seed=1337):
     case_dirs = sorted([d for d in os.listdir(data_root) if d.startswith('Case')])
     random.seed(seed)
@@ -53,7 +51,6 @@ def generate_folds_txt(data_root, fold_file_path, num_folds=4, seed=1337):
             f.write(f"Fold{i}: {' '.join(folds[i])}\n")
     print(f"[Info] Generated {fold_file_path} with {num_folds} folds.")
 
-# --------------------- 解析 folds 文件 ---------------------
 def parse_folds(fold_file):
     fold_dict = {}
     with open(fold_file, 'r') as f:
@@ -70,7 +67,6 @@ def parse_folds(fold_file):
             fold_dict[fold_id] = cases
     return fold_dict
 
-# --------------------- Dataset ---------------------
 class ProstateDataset(Dataset):
     def __init__(self, preprocessed_dir, case_ids, transform=None):
         self.data_paths = []
@@ -93,14 +89,12 @@ class ProstateDataset(Dataset):
             sample = self.transform(sample)
         return sample
 
-# --------------------- 学习率调整 ---------------------
 def adjust_learning_rate(optimizer, base_lr, iter, max_iter, power=0.9):
     lr = base_lr * ((1 - float(iter) / max_iter) ** power)
     for param_group in optimizer.param_groups:
         param_group['lr'] = lr
     return lr
 
-# --------------------- 主训练函数 ---------------------
 def train(args):
     os.makedirs(args.save_dir, exist_ok=True)
     logging.basicConfig(filename=os.path.join(args.save_dir, 'train.log'), level=logging.INFO, format='%(asctime)s %(message)s')
@@ -130,7 +124,7 @@ def train(args):
     global_step = 0
     best_dice = 0.0
     model.train()
-    loss_fn = ComboLoss(first=DiceLoss(), second=nn.CrossEntropyLoss(), weight=0.3)  # ✅ 使用 Dice + CE 组合，可替换为 dice_focal
+    loss_fn = ComboLoss(first=DiceLoss(), second=nn.CrossEntropyLoss(), weight=0.3)  
 
     for epoch in range(args.epochs):
         loop = tqdm(train_loader, total=len(train_loader), desc=f"Epoch [{epoch+1}/{args.epochs}]")
@@ -171,7 +165,6 @@ def train(args):
 
     writer.close()
 
-# --------------------- 启动入口 ---------------------
 if __name__ == '__main__':
     set_seed(args.seed)
     train(args)
