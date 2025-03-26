@@ -7,8 +7,8 @@ import SimpleITK as sitk
 import random
 
 
-data_dir = "/home/hpc/iwai/iwai119h/UGTST/repo-UGTST/data/PROMISE12"           
-out_dir = "/home/hpc/iwai/iwai119h/UGTST/repo-UGTST/data_preprocessed/PROMISE12"
+data_dir = "./repo-UGTST/data/PROMISE12"           
+out_dir = "./repo-UGTST/data_preprocessed/PROMISE12"
 num_folds = 4
 
 
