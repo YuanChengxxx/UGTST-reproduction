@@ -10,11 +10,11 @@ from Unet2D import UNet2D
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--model_path', type=str,
-                    default='/home/hpc/iwai/iwai119h/UGTST/repo-UGTST/repo1/outputs/target_training/Stage2_best_model.pth')
+                    default='./repo-UGTST/outputs/target_training/Stage2_best_model.pth')
 parser.add_argument('--data_root', type=str,
-                    default='/home/hpc/iwai/iwai119h/UGTST/repo-UGTST/data_preprocessed/PROMISE12')
+                    default='./repo-UGTST/data_preprocessed/PROMISE12')
 parser.add_argument('--test_list', type=str,
-                    default='/home/hpc/iwai/iwai119h/UGTST/repo-UGTST/data_preprocessed/PROMISE12/target_test.txt')
+                    default='./repo-UGTST/data_preprocessed/PROMISE12/target_test.txt')
 args = parser.parse_args()
 
 def load_case_list(txt_path):
