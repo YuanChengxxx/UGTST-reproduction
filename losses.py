@@ -57,16 +57,16 @@ class Focal_Dice_Loss(nn.Module):
 class ComboLoss(nn.Module):
     def __init__(self, first, second, weight=0.5):
         super(ComboLoss, self).__init__()
-        self.first = first  # Dice, etc.
-        self.second = second  # CE, Focal, etc.
+        self.first = first  
+        self.second = second  
         self.weight = weight
 
     def forward(self, logits, targets):
-        # ⚠️ 处理 shape 不匹配
+        
         if logits.shape[2:] != targets.shape[2:]:
             targets = F.interpolate(targets.float(), size=logits.shape[2:], mode='nearest').long()
 
         loss_dice = self.first(logits, targets)
-        loss_other = self.second(logits, targets.squeeze(1))  # ✅ 关键点
+        loss_other = self.second(logits, targets.squeeze(1))  
         return self.weight * loss_dice + (1 - self.weight) * loss_other
 
