@@ -1,0 +1,12 @@
+torch>=1.8.0
+torchvision
+numpy
+h5py
+tqdm
+scikit-learn
+SimpleITK
+opencv-python
+medpy
+matplotlib
+tensorboard
+nibabel
