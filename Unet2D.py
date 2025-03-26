@@ -172,7 +172,7 @@ class UNet2D(nn.Module):
         f = self.encoder(x)
         output = self.decoder(f)
 
-        # 添加对 encoder features 的返回，符合论文中聚类使用的需求
+        
         if(len(x_shape) == 5):
             if(isinstance(output, (list,tuple))):
                 for i in range(len(output)):
@@ -182,5 +182,5 @@ class UNet2D(nn.Module):
                 new_shape = [N, D] + list(output.shape)[1:]
                 output = torch.transpose(torch.reshape(output, new_shape), 1, 2)
 
-        return output, f  # 返回 segmentation output 和 encoder features
+        return output, f  
 
