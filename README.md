@@ -1,7 +1,13 @@
+# UGTST-Reproduction
 
-# UGTST Reproduction
+This repository reproduces the experiments from the paper:
 
-This repository reproduces the paper:  
-**"An Uncertainty-guided Tiered Self-training Framework for Active Source-free Domain Adaptation in Prostate Segmentation"**
+**"An Uncertainty-guided Tiered Self-training Framework for Active Source-free Domain Adaptation in Prostate Segmentation" (MICCAI 2023)**
 
-I reproduce the UGTST framework on the PROMISE12 dataset, implementing both source domain training and target domain adaptation with active learning and pseudo-labeling strategies.
+> This repo supports source domain training, active sample selection, and target domain self-training (Stage 1 and Stage 2) on the PROMISE12 dataset.
+
+---
+
+## 📁 Project Structure
+
+UGTST-reproduction/ ├── data_preprocessed/ # Preprocessed PROMISE12 data (not uploaded) ├── models/ # Trained model checkpoints ├── scripts/ # Training, selection, evaluation scripts ├── outputs/ # Logs and saved models ├── configs/ # Optional: config files ├── README.md ├── requirements.txt └── .gitignore
