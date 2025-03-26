@@ -1,4 +1,3 @@
-#!/bin/bash
 
 echo "===================="
 echo "🔧 Step 0: Activate Environment (if needed)"
