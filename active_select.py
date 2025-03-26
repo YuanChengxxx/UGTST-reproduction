@@ -13,9 +13,9 @@ from torch.utils.data import Dataset, DataLoader
 parser = argparse.ArgumentParser()
 parser.add_argument('--model_path', type=str, default='./models/source/best_model.pth')
 parser.add_argument('--target_root', type=str,
-                    default='/home/hpc/iwai/iwai119h/UGTST/repo-UGTST/data_preprocessed/PROMISE12')
+                    default='./repo-UGTST/data_preprocessed/PROMISE12')
 parser.add_argument('--save_dir', type=str,
-                    default='/home/hpc/iwai/iwai119h/UGTST/repo-UGTST/data_preprocessed/PROMISE12/slices_pseudo')
+                    default='./repo-UGTST/data_preprocessed/PROMISE12/slices_pseudo')
 parser.add_argument('--select_ratio', type=float, default=0.05)
 parser.add_argument('--tta_times', type=int, default=4)
 parser.add_argument('--overwrite', action='store_true')
