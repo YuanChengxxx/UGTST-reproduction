@@ -24,7 +24,7 @@ def evaluate_model_on_volumes(model, data_root, device, case_filter=None):
     dice_scores = []
     hd95_scores = []
 
-    # 加入 case 过滤逻辑
+    
     all_case_dirs = sorted(glob(os.path.join(data_root, "Case*")))
     if case_filter is not None:
         case_dirs = [os.path.join(data_root, c) for c in case_filter if os.path.isdir(os.path.join(data_root, c))]
@@ -45,13 +45,13 @@ def evaluate_model_on_volumes(model, data_root, device, case_filter=None):
                 tensor = torch.tensor(image[np.newaxis], dtype=torch.float32).to(device)  # [1, 1, H, W]
                 pred_logit, _ = model(tensor)
                 if isinstance(pred_logit, (list, tuple)):
-                    pred_logit = pred_logit[0]  # 只取第一个尺度的输出
+                    pred_logit = pred_logit[0]  
                 pred_mask = torch.argmax(F.softmax(pred_logit, dim=1), dim=1).squeeze(0).cpu().numpy()  # [H, W]
                 pred_slices.append(pred_mask)
 
             pred_volume = np.stack(pred_slices, axis=0)  # [D, H, W]
 
-            # load GT
+           
             gt_path = os.path.join(case, f"{case_id}.h5")
             with h5py.File(gt_path, 'r') as f:
                 gt_volume = f['label'][:]
