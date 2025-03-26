@@ -19,9 +19,9 @@ from losses import DiceLoss, FocalLoss, ComboLoss
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--data_root', type=str,
-                    default="/home/hpc/iwai/iwai119h/UGTST/repo-UGTST/data_preprocessed/NCI-ISBI-2013")
+                    default="./repo-UGTST/data_preprocessed/NCI-ISBI-2013")
 parser.add_argument('--fold_file', type=str,
-                    default="/home/hpc/iwai/iwai119h/UGTST/repo-UGTST/data_preprocessed/NCI-ISBI-2013/folds.txt")
+                    default="./repo-UGTST/data_preprocessed/NCI-ISBI-2013/folds.txt")
 parser.add_argument('--val_fold', type=int, default=1)
 parser.add_argument('--epochs', type=int, default=400)
 parser.add_argument('--batch_size', type=int, default=24)
