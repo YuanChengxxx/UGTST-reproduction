@@ -126,4 +126,11 @@ You will get:
 
 ---
 
+## 🔁 One-Click Run
+
+To run the full pipeline from preprocessing to evaluation with default settings, simply run:
+
+```bash
+bash reproduce.sh
+
 
