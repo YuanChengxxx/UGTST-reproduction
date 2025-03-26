@@ -52,10 +52,12 @@ pip install -r requirements.txt
 
 1. Download the **PROMISE12** dataset from  
 👉 https://promise12.grand-challenge.org/
+2. Download the **NCI-ISBI 2013** dataset from  
+👉 [https://promise12.grand-challenge.org/](https://www.cancerimagingarchive.net/analysis-result/isbi-mr-prostate-2013/)
 
-2. Place raw `.nii.gz` files in `./data/PROMISE12/` and `./data/NCI-ISBI-2013/`
+3. Place raw `.nii.gz` files in `./data/PROMISE12/` and `./data/NCI-ISBI-2013/`
 
-3. Modify `preprocess.py`:
+4. Modify `preprocess.py`:
 ```python
 data_dir = "./data/PROMISE12/"
 out_dir = "./data_preprocessed/PROMISE12"
