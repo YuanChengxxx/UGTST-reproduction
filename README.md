@@ -23,8 +23,8 @@ cd UGTST-reproduction
 conda create -n ugtst python=3.10
 conda activate ugtst
 pip install -r requirements.txt
-
-📂 Data Preparation
+---
+##📂 Data Preparation
 Download PROMISE12 dataset from https://promise12.grand-challenge.org/](https://liuquande.github.io/SAML/
 I merged the BIDMC and HK datasets from PROMISE12 into one dataset and named it PROMISE12 in my directory.
 Similarly, I merged the RUNMC and BMC datasets into one dataset and named it NCI-ISBI-2013 in my directory.
