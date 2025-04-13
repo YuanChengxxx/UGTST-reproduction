@@ -10,6 +10,9 @@ import random
 from Unet2D import UNet2D
 from torch.utils.data import Dataset, DataLoader
 
+
+from sklearn.cluster import KMeans
+
 parser = argparse.ArgumentParser()
 parser.add_argument('--model_path', type=str, default='./models/source/best_model.pth')
 parser.add_argument('--target_root', type=str,
@@ -45,7 +48,6 @@ def split_target_cases(root, val_ratio=0.2, test_ratio=0.1, seed=1337):
 
     return train_cases, val_cases, test_cases
 
-
 def ensure_tensor4d(tensor):
     if isinstance(tensor, np.ndarray):
         tensor = torch.tensor(tensor, dtype=torch.float32)
@@ -64,8 +66,50 @@ def softmax_entropy(pred):
     entropy = -torch.sum(probs * log_probs, dim=1)
     return entropy
 
-def aggregate_uncertainty(entropy_map):
-    return entropy_map.mean().item()
+
+def apply_intensity_augmentation(image):
+    factor = torch.FloatTensor(1).uniform_(0.9, 1.1).item()
+    shift = torch.FloatTensor(1).uniform_(-0.1, 0.1).item()
+    return image * factor + shift
+
+
+def apply_spatial_augmentation(image):
+    if random.random() > 0.5:
+        
+        return torch.flip(image, dims=[-1]), lambda x: torch.flip(x, dims=[-1])
+    else:
+        return image, lambda x: x
+
+def apply_tta_transform(image):
+   
+    aug_image = apply_intensity_augmentation(image)
+    aug_image, inverse_transform = apply_spatial_augmentation(aug_image)
+    return aug_image, inverse_transform
+
+
+def compute_GAUA(entropy_map, num_bins=100):
+    
+    entropy_values = entropy_map.flatten().cpu().numpy()
+    hist, bin_edges = np.histogram(entropy_values, bins=num_bins)
+    bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2.0
+   
+    peaks = []
+    for i in range(1, len(hist)-1):
+        if hist[i] > hist[i-1] and hist[i] >= hist[i+1]:
+            peaks.append(i)
+    if len(peaks) == 0:
+        T_i = np.mean(entropy_values)
+    else:
+       
+        T_i = min(bin_centers[peaks])
+   
+    mask = entropy_map > T_i
+    if mask.sum() == 0:
+        U_i = entropy_map.mean().item()
+    else:
+        U_i = entropy_map[mask].mean().item()
+    return U_i, T_i
+
 
 class SliceDataset(Dataset):
     def __init__(self, root, case_filter=None):
@@ -87,24 +131,68 @@ class SliceDataset(Dataset):
             image = image.unsqueeze(0)
         return image, path
 
+
 def select_uncertain_slices(model, dataloader, device, num_select=5, tta_times=4):
+
     model.eval()
-    uncertainties = []
+    candidate_uncertainties = []
+    candidate_paths = []
+    candidate_features = []
+    
     with torch.no_grad():
         for images, paths in tqdm(dataloader, desc="Uncertainty Estimation"):
             image = ensure_tensor4d(images).to(device)
-            all_logits = []
+            
+            logits_list = []
+            features_list = []
+         
             for _ in range(tta_times):
-                noise = torch.clamp(torch.randn_like(image) * 0.05, -0.1, 0.1)
-                noisy_input = image + noise
-                output, _ = model(noisy_input)
-                all_logits.append(output.cpu())
-            avg_logits = torch.stack(all_logits).mean(0)
+                aug_image, inv_transform = apply_tta_transform(image)
+               
+                output, feat = model(aug_image)
+                logits_list.append(output.cpu())
+                features_list.append(feat.cpu())
+           
+            avg_logits = torch.stack(logits_list).mean(0)
+          
             entropy_map = softmax_entropy(avg_logits)
-            avg_uncertainty = aggregate_uncertainty(entropy_map)
-            uncertainties.append((avg_uncertainty, paths[0]))
-    uncertainties.sort(reverse=True)
-    selected = [p for _, p in uncertainties[:num_select]]
+            
+            U_i, T_i = compute_GAUA(entropy_map)
+            candidate_uncertainties.append(U_i)
+            candidate_paths.append(paths[0])
+            
+            avg_feature = torch.mean(torch.stack(features_list), dim=0)
+            
+            feature_vector = avg_feature.view(-1).cpu().numpy()
+            candidate_features.append(feature_vector)
+    
+    
+    candidate_capacity = 4 * num_select
+    
+    indices = np.argsort(candidate_uncertainties)[::-1]
+    selected_candidate_indices = indices[:candidate_capacity]
+    Dtu_paths = [candidate_paths[i] for i in selected_candidate_indices]
+    Dtu_features = [candidate_features[i] for i in selected_candidate_indices]
+    
+
+    features_array = np.stack(Dtu_features)  # shape: (num_candidates, feature_dim)
+    kmeans = KMeans(n_clusters=num_select, init='k-means++')
+    kmeans.fit(features_array)
+    centroids = kmeans.cluster_centers_
+    labels = kmeans.labels_
+    
+  
+    selected_final_indices = []
+    for cluster_id in range(num_select):
+        cluster_indices = np.where(labels == cluster_id)[0]
+        if len(cluster_indices) == 0:
+            continue
+
+        distances = np.linalg.norm(features_array[cluster_indices] - centroids[cluster_id], axis=1)
+        min_index = cluster_indices[np.argmin(distances)]
+        selected_final_indices.append(min_index)
+    
+    selected = [Dtu_paths[i] for i in selected_final_indices]
     return selected
 
 def generate_pseudo_labels(model, paths, save_dir, device, overwrite=False):
@@ -156,5 +244,4 @@ def main(args):
     logging.info("Active sample selection and pseudo-labeling completed.")
 
 if __name__ == '__main__':
-
     main(args)
