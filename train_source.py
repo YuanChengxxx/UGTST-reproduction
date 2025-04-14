@@ -96,74 +96,109 @@ def adjust_learning_rate(optimizer, base_lr, iter, max_iter, power=0.9):
     return lr
 
 def train(args):
+    # Create directory to save models and logs
     os.makedirs(args.save_dir, exist_ok=True)
-    logging.basicConfig(filename=os.path.join(args.save_dir, 'train.log'), level=logging.INFO, format='%(asctime)s %(message)s')
+
+    # Set up logging to both file and console
+    logging.basicConfig(
+        filename=os.path.join(args.save_dir, 'train.log'),
+        level=logging.INFO,
+        format='%(asctime)s %(message)s'
+    )
     console = logging.StreamHandler()
     logging.getLogger().addHandler(console)
 
+    # TensorBoard writer for logging training metrics
     writer = SummaryWriter(log_dir=os.path.join(args.save_dir, 'tensorboard'))
+
+    # Determine computing device
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+    # If fold file does not exist, generate it with random split
     if not os.path.exists(args.fold_file):
         generate_folds_txt(args.data_root, args.fold_file)
 
+    # Parse the fold file into train/val case lists
     fold_dict = parse_folds(args.fold_file)
-    val_ids = fold_dict[args.val_fold]
-    train_ids = [case for fid, cases in fold_dict.items() if fid != args.val_fold for case in cases]
+    val_ids = fold_dict[args.val_fold]  # Cases for validation
+    train_ids = [case for fid, cases in fold_dict.items() if fid != args.val_fold for case in cases]  # Cases for training
 
     logging.info(f"Train cases ({len(train_ids)}): {train_ids}")
     logging.info(f"Val cases ({len(val_ids)}): {val_ids}")
 
+    # Initialize the training dataset and apply augmentation
     train_set = ProstateDataset(args.data_root, train_ids, transform=Augmentation())
     train_loader = DataLoader(train_set, batch_size=args.batch_size, shuffle=True, num_workers=4)
 
+    # Initialize the U-Net model (2D) with multi-scale output
     model = UNet2D({'in_chns': 1, 'class_num': 2, 'multiscale_pred': True}).to(device)
+
+    # Use SGD optimizer with momentum and weight decay
     optimizer = SGD(model.parameters(), lr=args.lr, momentum=0.9, weight_decay=1e-4)
+
+    # Compute total training iterations (used for learning rate scheduling)
     max_iter = args.epochs * len(train_loader)
 
-    global_step = 0
-    best_dice = 0.0
-    model.train()
-    loss_fn = ComboLoss(first=DiceLoss(), second=nn.CrossEntropyLoss(), weight=0.3)  
+    global_step = 0  # Global training step counter
+    best_dice = 0.0  # Track the best validation Dice score
+    model.train()    # Set model to training mode
 
+    # Composite loss: Dice + CrossEntropy (ComboLoss with weight 0.3 for Dice)
+    loss_fn = ComboLoss(first=DiceLoss(), second=nn.CrossEntropyLoss(), weight=0.3)
+
+    # ----------- Training Loop Starts ------------
     for epoch in range(args.epochs):
         loop = tqdm(train_loader, total=len(train_loader), desc=f"Epoch [{epoch+1}/{args.epochs}]")
+
         for batch in loop:
             model.train()
-            images = batch['image'].to(device)
-            labels = batch['label'].to(device)
 
+            # Move input and label to device
+            images = batch['image'].to(device)  # Shape: [B, 1, H, W]
+            labels = batch['label'].to(device)  # Shape: [B, 1, H, W]
+
+            # Forward pass: model outputs (could be multi-scale)
             outputs, _ = model(images)
+
+            # Handle multi-scale outputs: average losses from all outputs
             if isinstance(outputs, (list, tuple)):
                 loss = sum([loss_fn(out, labels) for out in outputs]) / len(outputs)
             else:
                 loss = loss_fn(outputs, labels)
 
+            # Backpropagation and optimizer step
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
 
+            # Adjust learning rate using polynomial decay schedule
             current_lr = adjust_learning_rate(optimizer, args.lr, global_step, max_iter)
             global_step += 1
 
+            # Update tqdm display and log to TensorBoard
             loop.set_postfix(loss=loss.item(), lr=current_lr)
             writer.add_scalar('train/loss', loss.item(), global_step)
             writer.add_scalar('train/lr', current_lr, global_step)
 
+        # ---------- Validation after each epoch ----------
         val_dice, val_hd = evaluate_model_on_volumes(model, args.data_root, device, case_filter=val_ids)
         writer.add_scalar('val/dice', val_dice, epoch)
         writer.add_scalar('val/hd95', val_hd, epoch)
         logging.info(f"Epoch {epoch+1}, Val Dice: {val_dice:.4f}, Val HD95: {val_hd:.4f}")
 
+        # Save the best model based on validation Dice score
         if val_dice > best_dice:
             best_dice = val_dice
             torch.save(model.state_dict(), os.path.join(args.save_dir, 'best_model.pth'))
             logging.info(f">>> New best model saved with Dice {val_dice:.4f}")
 
+        # Save model checkpoint every 10 epochs
         if (epoch + 1) % 10 == 0:
             torch.save(model.state_dict(), os.path.join(args.save_dir, f'model_epoch_{epoch+1}.pth'))
 
+    # Close TensorBoard writer
     writer.close()
+
 
 if __name__ == '__main__':
     set_seed(args.seed)
